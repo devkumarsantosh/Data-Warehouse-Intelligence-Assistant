@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  gateway:
+    build: .
+    command: uvicorn cdwia.gateway.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - CDWIA_REDIS_URL=redis://redis:6379/0
+      - CDWIA_POSTGRES_DSN=postgresql://cdwia_ro:changeme@postgres:5432/warehouse
+      - CDWIA_KAFKA_BOOTSTRAP=kafka:9092
+      - CDWIA_OPA_URL=http://opa:8181/v1/data/cdwia/allow
+    depends_on:
+      - redis
+      - postgres
+      - opa
+    volumes:
+      - ./src:/app/src
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=warehouse
+      - POSTGRES_USER=cdwia_ro
+      - POSTGRES_PASSWORD=changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  opa:
+    image: openpolicyagent/opa:latest-envoy
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "/policy"]
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./policy:/policy
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+volumes:
+  pgdata:

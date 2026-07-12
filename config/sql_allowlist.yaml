@@ -1,0 +1,29 @@
+# Schema allowlist for the SQL agent's AST validator.
+# "*" means all columns on that table are permitted.
+# This file is the actual authorization boundary for query scope; keep
+# it under change review the same way you would review an IAM policy.
+
+tables:
+  billing_line_items:
+    - account_id
+    - service_code
+    - region
+    - usage_date
+    - cost_usd
+    - team
+
+  cost_by_team_daily:
+    - "*"
+
+  service_catalog:
+    - service_code
+    - service_name
+    - category
+
+  storage_usage_daily:
+    - account_id
+    - bucket_name
+    - region
+    - usage_date
+    - storage_gb
+    - cost_usd
